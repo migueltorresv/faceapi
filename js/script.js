@@ -1,3 +1,5 @@
+
+
 const video = document.getElementById('videoInput')
 
 function start() {
@@ -20,14 +22,16 @@ function start() {
 }
 
 /*Promise.all([
-    faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
-    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-    faceapi.nets.ssdMobilenetv1.loadFromUri('/models') //heavier/accurate version of tiny face detector
+    faceapi.nets.faceRecognitionNet.loadFromUri('./models'),
+    faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
+    faceapi.nets.ssdMobilenetv1.loadFromUri('./models'),
+    faceapi.nets.tinyFaceDetector.loadFromUri('./models') //heavier/accurate version of tiny face detector
 ]).then(start)*/
 Promise.all([
     faceapi.nets.faceRecognitionNet.loadFromUri('https://migueltorresv.github.io/faceapi/models'),
     faceapi.nets.faceLandmark68Net.loadFromUri('https://migueltorresv.github.io/faceapi/models'),
-    faceapi.nets.ssdMobilenetv1.loadFromUri('https://migueltorresv.github.io/faceapi/models') //heavier/accurate version of tiny face detector
+    faceapi.nets.ssdMobilenetv1.loadFromUri('https://migueltorresv.github.io/faceapi/models'), //heavier/accurate version of tiny face detector
+    faceapi.nets.tinyFaceDetector.loadFromUri('https://migueltorresv.github.io/faceapi/models')
 ]).then(start)
 
 async function recognizeFaces() {
@@ -43,12 +47,15 @@ async function recognizeFaces() {
         document.body.append(canvas)
 
         const displaySize = { width: video.width, height: video.height }
-        faceapi.matchDimensions(canvas, displaySize)
-
-        
+        faceapi.matchDimensions(canvas, displaySize)     
 
         setInterval(async () => {
-            const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors()
+            let inputSize = 128
+            let scoreThreshold = 0.5
+            //const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+            //const detections = await faceapi.detectAllFaces(video).withFaceLandmarks(true).withFaceDescriptors()
+            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })).withFaceLandmarks().withFaceDescriptors()
+            //const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors()
 
             const resizedDetections = faceapi.resizeResults(detections, displaySize)
 
@@ -70,7 +77,7 @@ async function recognizeFaces() {
 }
 
 function loadLabeledImages() {
-    //const labels = ['Black Widow', 'Captain America', 'Hawkeye' , 'Jim Rhodes', 'Tony Stark', 'Thor', 'Captain Marvel']
+    //const labels = ['Black Widow', 'Captain America', 'Captain Marvel', 'Hawkeye', 'Iron Man', 'Miguel Torres', 'Thor', 'Tony Stark']
     const labels = ['Miguel Torres'] // for WebCam
     return Promise.all(
         labels.map(async (label)=>{
@@ -78,6 +85,7 @@ function loadLabeledImages() {
             for(let i=1; i<=4; i++) {
                 //const img = await faceapi.fetchImage(`../labeled_images/${label}/${i}.jpg`)
                 const img = await faceapi.fetchImage(`https://migueltorresv.github.io/faceapi/labeled_images/${label}/${i}.jpg`)
+                
                 const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor()
                 console.log(label + i + JSON.stringify(detections))
                 descriptions.push(detections.descriptor)
