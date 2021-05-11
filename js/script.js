@@ -22,16 +22,16 @@ function start() {
 }
 
 /*Promise.all([
-    faceapi.nets.faceRecognitionNet.loadFromUri('./models'),
-    faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
-    faceapi.nets.ssdMobilenetv1.loadFromUri('./models'),
-    faceapi.nets.tinyFaceDetector.loadFromUri('./models') //heavier/accurate version of tiny face detector
+    faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+    faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+    faceapi.nets.tinyFaceDetector.loadFromUri('/models') //heavier/accurate version of tiny face detector
 ]).then(start)*/
 Promise.all([
     faceapi.nets.faceRecognitionNet.loadFromUri('https://migueltorresv.github.io/faceapi/models'),
     faceapi.nets.faceLandmark68Net.loadFromUri('https://migueltorresv.github.io/faceapi/models'),
-    faceapi.nets.ssdMobilenetv1.loadFromUri('https://migueltorresv.github.io/faceapi/models'), //heavier/accurate version of tiny face detector
-    faceapi.nets.tinyFaceDetector.loadFromUri('https://migueltorresv.github.io/faceapi/models')
+    faceapi.nets.ssdMobilenetv1.loadFromUri('https://migueltorresv.github.io/faceapi/models'),
+    faceapi.nets.tinyFaceDetector.loadFromUri('https://migueltorresv.github.io/faceapi/models') //heavier/accurate version of tiny face detector
 ]).then(start)
 
 async function recognizeFaces() {
@@ -52,10 +52,10 @@ async function recognizeFaces() {
         setInterval(async () => {
             let inputSize = 128
             let scoreThreshold = 0.5
-            //const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-            //const detections = await faceapi.detectAllFaces(video).withFaceLandmarks(true).withFaceDescriptors()
+            //const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })
+            
             const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })).withFaceLandmarks().withFaceDescriptors()
-            //const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors()
+            //const detections = await faceapi.detectAllFaces(video, options)
 
             const resizedDetections = faceapi.resizeResults(detections, displaySize)
 
@@ -64,11 +64,14 @@ async function recognizeFaces() {
             const results = resizedDetections.map((d) => {
                 return faceMatcher.findBestMatch(d.descriptor)
             })
+
             results.forEach( (result, i) => {
                 const box = resizedDetections[i].detection.box
                 const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() })
                 drawBox.draw(canvas)
             })
+
+
         }, 100)
 
 
@@ -85,13 +88,16 @@ function loadLabeledImages() {
             for(let i=1; i<=4; i++) {
                 //const img = await faceapi.fetchImage(`../labeled_images/${label}/${i}.jpg`)
                 const img = await faceapi.fetchImage(`https://migueltorresv.github.io/faceapi/labeled_images/${label}/${i}.jpg`)
-                
-                const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor()
+                let inputSize = 128
+                let scoreThreshold = 0.5
+                const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })
+                //const detections = await faceapi.detectSingleFace(img, options)
+                const detections = await faceapi.detectSingleFace(img,new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })).withFaceLandmarks().withFaceDescriptor()
                 console.log(label + i + JSON.stringify(detections))
-                descriptions.push(detections.descriptor)
+                descriptions.push(new Float32Array( detections.descriptor))
             }
             document.body.append(label+' Faces Loaded | ')
-            return new faceapi.LabeledFaceDescriptors(label, descriptions)
+            return new faceapi.LabeledFaceDescriptors(label, descriptions )
         })
     )
 }
